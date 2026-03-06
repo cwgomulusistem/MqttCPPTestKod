@@ -56,6 +56,7 @@ bool LcdService::init(const LcdConfig *config,
 
   // İlk ekran: Idle
   showIdleScreen();
+  lv_timer_handler();
 
   LOG_I("LCD: Service initialized");
   return true;
@@ -92,48 +93,33 @@ void LcdService::stop() {
 bool LcdService::isRunning() const { return _running; }
 
 // =============================================================================
-// TASK LOOP - AKILLI BEKLEME (Smart Sleep)
+// TASK LOOP - testesp32LCD LOOP AKISI
 // =============================================================================
 
 void LcdService::taskLoop(void *param) {
   LcdService *self = static_cast<LcdService *>(param);
   ScreenMessage msg;
-
-  // Varsayılan uyanma süresi (İlk giriş için)
-  uint32_t time_till_next = 5;
+  uint32_t last_tick_ms = millis();
 
   while (self->_running) {
-
-    // 1. Akıllı Bekleme (Smart Sleep)
-    // İşlemci burada uykuya dalar. Ne zamana kadar?
-    // - Ya kuyruğa yeni bir mesaj gelene kadar (anında uyanır!)
-    // - Ya da LVGL'in verdiği süre dolana kadar.
-    if (xQueueReceive(self->_commandQueue.handle(), &msg,
-                      pdMS_TO_TICKS(time_till_next)) == pdTRUE) {
-
-      // Mesaj yakalandı! LVGL objelerini güncelle
+    // testesp32LCD loop: kuyruğu bloklamadan boşalt
+    while (xQueueReceive(self->_commandQueue.handle(), &msg, 0) == pdTRUE) {
       self->processCommand(&msg);
-
-      // Ekran değişti, LVGL hemen çalışsın
-      time_till_next = 0;
-      continue; // Döngüyü başa sar ve hemen çiz!
     }
 
-    // 2. Auto-idle kontrolü
+    // Auto-idle kontrolü
     if (self->_autoIdleTime > 0 && millis() >= self->_autoIdleTime) {
       self->_autoIdleTime = 0;
       self->showIdleScreen();
     }
 
-    // 3. LVGL Ekranı Çizme ve Süre Hesaplama
-    // Ekranı günceller ve bir sonraki işlem için kaç ms uyuyabileceğimizi
-    // söyler
-    time_till_next = lv_timer_handler();
+    // testesp32LCD loop: tick + handler + sabit delay
+    const uint32_t now = millis();
+    lv_tick_inc(now - last_tick_ms);
+    last_tick_ms = now;
+    lv_timer_handler();
 
-    // Güvenlik: Maks 500ms'de bir kontrol
-    if (time_till_next > 500) {
-      time_till_next = 500;
-    }
+    vTaskDelay(pdMS_TO_TICKS(5));
   }
 
   vTaskDelete(nullptr);
@@ -206,20 +192,23 @@ void LcdService::processCommand(const ScreenMessage *msg) {
 // =============================================================================
 
 void LcdService::createUI() {
-  lv_obj_t *activeScreen = nullptr;
+  // testesp32LCD ile ayni sekilde ayri bir screen olusturup aktif et.
+  _scrMain = lv_obj_create(nullptr);
+  if (!_scrMain) {
+    LOG_E("LCD: Failed to create main screen");
+    return;
+  }
+
 #if LVGL_VERSION_MAJOR >= 9
-  activeScreen = lv_screen_active();
+  lv_screen_load(_scrMain);
 #else
-  activeScreen = lv_scr_act();
+  lv_scr_load(_scrMain);
 #endif
 
-  // Ana ekran objesi
-  _scrMain = lv_obj_create(activeScreen);
   lv_obj_remove_style_all(_scrMain);
   lv_obj_set_size(_scrMain, LCD_WIDTH, LCD_HEIGHT);
   lv_obj_set_style_bg_opa(_scrMain, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(_scrMain, lv_color_hex(0x13071D), 0);
-  lv_obj_center(_scrMain);
 
   // Başlık label (üst kısım)
   _lblTitle = lv_label_create(_scrMain);

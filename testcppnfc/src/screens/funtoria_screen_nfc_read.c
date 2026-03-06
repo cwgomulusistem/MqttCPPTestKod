@@ -5,13 +5,12 @@
 
 void FuntoriaScreen_showNfcRead(const FuntoriaScreenContext *ctx, const char *uid,
                                 const char *type) {
-  char bodyText[96] = {0};
-  char footerText[64] = {0};
+  char detailText[128] = {0};
 
-  snprintf(bodyText, sizeof(bodyText), "UID:\n%s", uid ? uid : "-");
-  snprintf(footerText, sizeof(footerText), "NFC READ | %s", type ? type : "-");
+  snprintf(detailText, sizeof(detailText), "UID: %s\nTIP: %s", uid ? uid : "-",
+           type ? type : "-");
 
-  funtoria_screen_apply(ctx, lv_color_hex(0x130A2A), lv_color_hex(0x8B5CF6),
-                        lv_color_hex(0xFFFFFF), lv_color_hex(0xC4B5FD),
-                        LV_SYMBOL_WIFI " KART OKUNDU", bodyText, footerText);
+  funtoria_screen_apply_status(
+      ctx, 0x8B5CF6, 0x120A26, 0x221031, LV_SYMBOL_WIFI, "KART ALGILANDI",
+      detailText, "DURUM: KART OKUNDU", "", "", false, true);
 }

@@ -9,7 +9,7 @@ static uint32_t last_tick_ms = 0;
 static uint8_t g_screen_index = 0;
 static lv_obj_t *g_wifi_bars[3] = {nullptr, nullptr, nullptr};
 constexpr uint8_t BOOT_SCREEN_INDEX = 0;
-constexpr uint8_t ACTIVE_SCREEN_COUNT = 10;
+constexpr uint8_t ACTIVE_SCREEN_COUNT = 8;
 constexpr uint32_t SCREEN_SWAP_MS = 2000;
 
 struct CloudBlob {
@@ -1215,20 +1215,29 @@ static lv_obj_t *build_pattern_color_screen(uint32_t base_hex) {
 }
 
 static lv_obj_t *create_screen_by_index(uint8_t index) {
-  static const uint32_t solid_colors[ACTIVE_SCREEN_COUNT] = {
-      0x8B5CF6, // Mor (Funtoria ana)
-      0xFF1144, // Kirmizi (hata vurgu)
-      0xF97316, // Turuncu (uyari)
-      0x1E1B4B, // Lacivert (koyu tema)
-      0xFFFFFF, // Beyaz (acik zemin)
-      0x00D084, // Yesil (onay)
-      0xEC4899, // Fuşya (mor-kirmizi arasi)
-      0x22D3EE, // Camgobegi (neon vurgu)
-      0x14B8A6, // Turkuaz (yesile yakin)
-      0x3B82F6, // Mavi (laciverte yakin)
-  };
+  clear_cloud_animation_targets();
+  clear_wifi_indicator_targets();
 
-  return build_pattern_color_screen(solid_colors[index % ACTIVE_SCREEN_COUNT]);
+  switch (index % ACTIVE_SCREEN_COUNT) {
+    case 0:
+      return build_scan_info_screen();
+    case 1:
+      return build_scan_anim_screen();
+    case 2:
+      return build_processing_screen();
+    case 3:
+      return build_waiting_card_screen();
+    case 4:
+      return build_success_info_screen();
+    case 5:
+      return build_session_done_screen();
+    case 6:
+      return build_network_error_screen();
+    case 7:
+      return build_rejected_screen("PAY_402", "ISLEM LIMITI ASILDI.");
+    default:
+      return build_pattern_color_screen(0x8B5CF6);
+  }
 }
 
 static void screen_swap_cb(lv_timer_t *timer) {

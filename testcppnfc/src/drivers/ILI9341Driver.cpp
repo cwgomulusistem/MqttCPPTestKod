@@ -14,6 +14,45 @@
 // LVGL FLUSH CALLBACK (Static C-Style)
 // =============================================================================
 
+namespace {
+constexpr uint8_t kBacklightChannel = 0;
+constexpr uint16_t kBacklightFreq = 5000;
+constexpr uint8_t kBacklightResBits = 10;
+alignas(4) static lv_color_t g_lvgl_buf1[LVGL_BUF_SIZE];
+
+uint32_t backlightDutyFromByte(uint8_t brightness) {
+  const uint32_t maxDuty = (1U << kBacklightResBits) - 1U;
+  const uint32_t rawDuty = (maxDuty * brightness) / 255U;
+#if defined(TFT_BACKLIGHT_ON) && (TFT_BACKLIGHT_ON == LOW)
+  return maxDuty - rawDuty;
+#else
+  return rawDuty;
+#endif
+}
+
+void run_tft_startup_probe(TFT_eSPI *tft) {
+  if (!tft) {
+    return;
+  }
+
+  tft->fillScreen(TFT_BLACK);
+  tft->setTextColor(TFT_WHITE, TFT_BLACK);
+  tft->setTextSize(2);
+  tft->setCursor(10, 12);
+  tft->println("TFT SPI TEST");
+  tft->println("ILI9341 init OK");
+  delay(500);
+
+  tft->fillScreen(TFT_RED);
+  delay(250);
+  tft->fillScreen(TFT_GREEN);
+  delay(250);
+  tft->fillScreen(TFT_BLUE);
+  delay(250);
+  tft->fillScreen(TFT_BLACK);
+}
+} // namespace
+
 /**
  * @brief LVGL → TFT_eSPI flush callback
  *
@@ -79,37 +118,48 @@ bool ILI9341Driver_init(ILI9341DriverState *state, TFT_eSPI *tft,
   state->initialized = false;
 
   // TFT_eSPI başlat
-  state->tft->init();
+  state->tft->begin();
   state->tft->setRotation(config->rotation);
   state->tft->fillScreen(TFT_BLACK);
   LOG_I("ILI9341: TFT_eSPI initialized (%dx%d, rotation=%d)", config->width,
         config->height, config->rotation);
 
-  // Backlight PWM başlat
-  pinMode(config->bl_pin, OUTPUT);
-  analogWrite(config->bl_pin, config->bl_brightness);
-  LOG_D("ILI9341: Backlight pin=%d, brightness=%d", config->bl_pin,
-        config->bl_brightness);
+  // Backlight PWM baslat (testesp32LCD ile ayni LEDC akisi)
+  ledcSetup(kBacklightChannel, kBacklightFreq, kBacklightResBits);
+  ledcAttachPin(config->bl_pin, kBacklightChannel);
+  ledcWrite(kBacklightChannel, backlightDutyFromByte(config->bl_brightness));
+  LOG_D("ILI9341: Backlight pin=%d, brightness=%d, duty=%lu", config->bl_pin,
+        config->bl_brightness,
+        static_cast<unsigned long>(backlightDutyFromByte(config->bl_brightness)));
 
-  // LVGL başlat (tek seferlik)
+  run_tft_startup_probe(state->tft);
+
+  // LVGL baslat (tek seferlik)
+  LOG_I("ILI9341: LVGL init start");
   lv_init();
-  LOG_D("ILI9341: LVGL initialized");
+  LOG_I("ILI9341: LVGL init done");
 
 #if LVGL_VERSION_MAJOR >= 9
   // LVGL v9 display oluştur
+  LOG_I("ILI9341: lv_display_create start");
   state->display = lv_display_create(config->width, config->height);
   if (!state->display) {
     LOG_E("ILI9341: lv_display_create failed!");
     return false;
   }
+  LOG_I("ILI9341: lv_display_create ok");
 
-  lv_display_set_buffers(state->display, state->buf1, NULL, sizeof(state->buf1),
+  LOG_I("ILI9341: lv_display_set_buffers start");
+  lv_display_set_buffers(state->display, g_lvgl_buf1, NULL,
+                         sizeof(g_lvgl_buf1),
                          LV_DISPLAY_RENDER_MODE_PARTIAL);
+  LOG_I("ILI9341: lv_display_set_buffers ok");
+  lv_display_set_color_format(state->display, LV_COLOR_FORMAT_RGB565);
   lv_display_set_flush_cb(state->display, lvgl_flush_cb);
   lv_display_set_user_data(state->display, state);
 #else
   // LVGL v8 display driver oluştur
-  lv_disp_draw_buf_init(&state->draw_buf, state->buf1, NULL, LVGL_BUF_SIZE);
+  lv_disp_draw_buf_init(&state->draw_buf, g_lvgl_buf1, NULL, LVGL_BUF_SIZE);
   lv_disp_drv_init(&state->disp_drv);
   state->disp_drv.hor_res = config->width;
   state->disp_drv.ver_res = config->height;
@@ -132,7 +182,7 @@ bool ILI9341Driver_init(ILI9341DriverState *state, TFT_eSPI *tft,
 void ILI9341Driver_setBacklight(ILI9341DriverState *state, uint8_t brightness) {
   if (!state)
     return;
-  analogWrite(state->bl_pin, brightness);
+  ledcWrite(kBacklightChannel, backlightDutyFromByte(brightness));
 }
 
 void ILI9341Driver_setRotation(ILI9341DriverState *state, uint8_t rotation) {

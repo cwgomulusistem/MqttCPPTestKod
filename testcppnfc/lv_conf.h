@@ -18,12 +18,16 @@
 // Renk derinliği: 16-bit (RGB565) - ILI9341 native format
 #define LV_COLOR_DEPTH 16
 
-// LVGL OSAL: FreeRTOS kullan
-// (Bu proje ESP32 + FreeRTOS task mimarisi ile calisiyor)
-#define LV_USE_OS LV_OS_FREERTOS
+// LVGL v9: bellek yonetimi
+// Dahili 64KB havuz yerine ESP32 sistem heap'i kullan.
+#define LV_USE_STDLIB_MALLOC LV_STDLIB_CLIB
+#define LV_USE_STDLIB_STRING LV_STDLIB_CLIB
+#define LV_USE_STDLIB_SPRINTF LV_STDLIB_CLIB
 
-// Bellek: LVGL'in kendi malloc/free'sini kullanma, sistem malloc kullansın
-#define LV_MEM_CUSTOM 1
+// LVGL OSAL:
+// Bu projede tum LVGL islemleri tek LcdTask icinde yurudugu icin LV_OS_NONE
+// daha stabil calisir.
+#define LV_USE_OS LV_OS_NONE
 
 // Font: Montserrat fontları
 #define LV_FONT_MONTSERRAT_14 1

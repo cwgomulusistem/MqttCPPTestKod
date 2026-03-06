@@ -23,7 +23,7 @@
 
 // NFC servis (PN532 HSU)
 // PN532 baglantisi hazir degilse false yap.
-#define SERVICE_ENABLE_NFC false
+#define SERVICE_ENABLE_NFC true
 
 // WiFi baglantisi
 #define SERVICE_ENABLE_WIFI false
@@ -33,5 +33,10 @@
 
 // MQTT servis
 #define SERVICE_ENABLE_MQTT false
+
+// Gecici: setup kart zorunlulugunu bypass et
+// true  -> cihaz dogrudan normal moda gecer
+// false -> setup kart gerekli olur
+#define SERVICE_BYPASS_SETUP_PROVISIONING true
 
 #endif // SERVICE_SWITCHES_H

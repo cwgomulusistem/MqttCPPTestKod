@@ -456,7 +456,14 @@ void setup() {
     }
   }
 
+  // Gecici saha testleri icin setup kart gerekliligini devre disi birak.
+#if SERVICE_BYPASS_SETUP_PROVISIONING
+  g_isSetupProvisioned = true;
+  g_setupProvisioningMode = false;
+  LOG_W("Setup provisioning bypass AKTIF (setup kart zorunlulugu kapali)");
+#else
   g_setupProvisioningMode = !g_isSetupProvisioned;
+#endif
   LOG_I("Provisioning mode: %s", g_setupProvisioningMode ? "AKTIF" : "KAPALI");
 
   // === WEB + MQTT Servisleri Başlat ===
