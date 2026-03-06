@@ -29,28 +29,6 @@ uint32_t backlightDutyFromByte(uint8_t brightness) {
   return rawDuty;
 #endif
 }
-
-void run_tft_startup_probe(TFT_eSPI *tft) {
-  if (!tft) {
-    return;
-  }
-
-  tft->fillScreen(TFT_BLACK);
-  tft->setTextColor(TFT_WHITE, TFT_BLACK);
-  tft->setTextSize(2);
-  tft->setCursor(10, 12);
-  tft->println("TFT SPI TEST");
-  tft->println("ILI9341 init OK");
-  delay(500);
-
-  tft->fillScreen(TFT_RED);
-  delay(250);
-  tft->fillScreen(TFT_GREEN);
-  delay(250);
-  tft->fillScreen(TFT_BLUE);
-  delay(250);
-  tft->fillScreen(TFT_BLACK);
-}
 } // namespace
 
 /**
@@ -131,8 +109,6 @@ bool ILI9341Driver_init(ILI9341DriverState *state, TFT_eSPI *tft,
   LOG_D("ILI9341: Backlight pin=%d, brightness=%d, duty=%lu", config->bl_pin,
         config->bl_brightness,
         static_cast<unsigned long>(backlightDutyFromByte(config->bl_brightness)));
-
-  run_tft_startup_probe(state->tft);
 
   // LVGL baslat (tek seferlik)
   LOG_I("ILI9341: LVGL init start");

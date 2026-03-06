@@ -100,11 +100,48 @@ void LcdService::taskLoop(void *param) {
   LcdService *self = static_cast<LcdService *>(param);
   ScreenMessage msg;
   uint32_t last_tick_ms = millis();
+  const bool demoMode = SERVICE_ENABLE_LCD_SCREEN_DEMO;
+  const uint32_t demoIntervalMs = 1800;
+  uint32_t nextDemoMs = millis();
+  uint8_t demoStep = 0;
 
   while (self->_running) {
     // testesp32LCD loop: kuyruğu bloklamadan boşalt
     while (xQueueReceive(self->_commandQueue.handle(), &msg, 0) == pdTRUE) {
       self->processCommand(&msg);
+    }
+
+    if (demoMode && millis() >= nextDemoMs) {
+      switch (demoStep) {
+      case 0:
+        self->showIdleScreen();
+        break;
+      case 1:
+        self->showNfcReadScreen("A8EF3B124B00", "MIFARE CLASSIC");
+        break;
+      case 2:
+        self->showPaymentOkScreen("KULLANICI: 1024", 4525);
+        break;
+      case 3:
+        self->showPaymentFailScreen("YETERSIZ BAKIYE");
+        break;
+      case 4:
+        self->showErrorScreen("BAGLANTI HATASI");
+        break;
+      case 5:
+        self->showPhoneDetectedScreen();
+        break;
+      case 6:
+        self->showSetupRequiredScreen("00B421A8EF3B", "A8EF3B124B00");
+        break;
+      default:
+        self->showCustomText("FUNTORIA DEMO", "EKRAN GECISI AKTIF");
+        break;
+      }
+
+      self->_autoIdleTime = 0;
+      demoStep = static_cast<uint8_t>((demoStep + 1U) % 8U);
+      nextDemoMs = millis() + demoIntervalMs;
     }
 
     // Auto-idle kontrolü

@@ -39,4 +39,9 @@
 // false -> setup kart gerekli olur
 #define SERVICE_BYPASS_SETUP_PROVISIONING true
 
+// Gecici: Funtoria ekranlarini otomatik sirayla goster (demo)
+// true  -> waiting/nfc/ok/fail/error/... ekranlari dongude gosterir
+// false -> normal uygulama akisi
+#define SERVICE_ENABLE_LCD_SCREEN_DEMO true
+
 #endif // SERVICE_SWITCHES_H

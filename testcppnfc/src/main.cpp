@@ -559,6 +559,9 @@ void setup() {
               g_appConfig.lcd_task.task_stack,
               g_appConfig.lcd_task.task_priority,
               g_appConfig.lcd_task.queue_size);
+        if (SERVICE_ENABLE_LCD_SCREEN_DEMO) {
+          LOG_W("LCD demo mode AKTIF: ekranlar otomatik siralanacak");
+        }
         if (g_setupProvisioningMode) {
           g_lcdService.showSetupRequired(g_appConfig.runtime.device.device_id,
                                          g_appConfig.runtime.device.mac_hex);
